@@ -140,6 +140,12 @@
 (@template-origin genrec arb-tree encapsulated try-catch accumulator)
 
 (define (solve beg end)
+  ;; Termination argument:
+  ;; Trivial: the current board is equal to given end board, or the board 
+  ;;          was previously seen
+  ;; Reduction: a move is made from current board to generate next boards
+  ;; Argument: making a move either gets closer to the given end board, or
+  ;;           all possible boards are exhausted, reaching the trivial case
   (local [(define (solve-bd bd path)
             (cond [(member bd path) false]
                   [(equal? bd end) (list end)]
