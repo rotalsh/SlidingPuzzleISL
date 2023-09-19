@@ -291,10 +291,10 @@
         [(fp? gs) gs]
         [(tb? gs) gs]
         [else
-         (cond [(equal? (bs-bd gs)
+         (cond [(equal? (bs-bd gs) ; if board solved, state is trueboard
                         (make-board (build-list (length (bs-bd gs)) identity)))
                 (make-tb true (bs-bd gs) (bs-t gs))]
-               [(false? (bs-s gs))
+               [(false? (bs-s gs)) ; if board unsolved and unpaused, increment timer
                 (make-bs (bs-bd gs) false (next-timer (bs-t gs)))]
                [else gs])]))
 
@@ -325,30 +325,7 @@
         [(fp? gs)
          (render-false gs)]
         [(tb? gs)
-         (place-images
-          (list (text "Complete!" (round (/ WIDTH 13)) "black")
-                (text (timer-string (tb-timer gs)) (round (/ WIDTH 13)) "black")
-                (overlay (text "New Game" (round (* WIDTH 9/160)) "black")
-                         (rectangle (* WIDTH .3) (* HEIGHT .09)
-                                    "solid" "green"))
-                (overlay (text "Continue" (round (* WIDTH 9/160)) "black")
-                         (rectangle (* WIDTH .3) (* HEIGHT .09)
-                                    "solid" "gray"))
-                (overlay (text "Main Menu" (round (* WIDTH 9/160)) "black")
-                         (rectangle (* WIDTH .3) (* HEIGHT .09)
-                                    "solid" "green"))
-                (rectangle (* WIDTH .4) (* HEIGHT .62)
-                           "solid" "white")
-                (rectangle (* WIDTH .43) (* HEIGHT .65)
-                           "solid" "blue"))
-          (list (make-posn (/ WIDTH 2) (* HEIGHT 0.3))
-                (make-posn (/ WIDTH 2) (* HEIGHT 0.4))
-                (make-posn (/ WIDTH 2) (* HEIGHT .5))
-                (make-posn (/ WIDTH 2) (* HEIGHT .6))
-                (make-posn (/ WIDTH 2) (* HEIGHT .7))
-                (make-posn (/ WIDTH 2) (/ HEIGHT 2))
-                (make-posn (/ WIDTH 2) (/ HEIGHT 2)))
-          (render-board (tb-bd gs)))]
+         (render-true gs)]
         [else
          (if (bs-s gs)
              (render-pause gs)
@@ -362,7 +339,7 @@
 ;(@template-origin FalsePage)
 
 (define (render-false fp)
-  (cond [(zero? (fp-page fp))
+  (cond [(zero? (fp-page fp)) ; main menu
          (place-images
           (list (text "Sliding Puzzle" (round (/ WIDTH 8)) "black")
                 (overlay (text "Play" (round (/ WIDTH 15)) "black")
@@ -379,7 +356,7 @@
                 (make-posn (/ WIDTH 2) (* HEIGHT 0.703))
                 (make-posn (/ WIDTH 2) (* HEIGHT 0.806)))
           MTS)]
-        [(= 1 (fp-page fp))
+        [(= 1 (fp-page fp)) ; board select
          (place-images
           (list (text "Choose Board Size" (round (/ WIDTH 13)) "black")
                 (overlay (text "3x3" (round (/ WIDTH 15)) "black")
@@ -404,7 +381,7 @@
                 (make-posn (/ WIDTH 2) (* HEIGHT 0.806))
                 (make-posn (* WIDTH 0.14) (* HEIGHT 0.94)))
           MTS)]
-        [(= 2 (fp-page fp))
+        [(= 2 (fp-page fp)) ; how to play
          (place-images
           (list
            (text "How to Play" (round (/ WIDTH 13)) "black")
@@ -443,8 +420,39 @@
                 (make-posn (* WIDTH 0.14) (* HEIGHT 0.94))
                 (make-posn (* WIDTH 0.65) (* HEIGHT 0.85)))
           MTS)]
-        [(= 3 (fp-page fp))
+        [(= 3 (fp-page fp)) ; game is quit, render whatever's already being shown
          (render-false (make-fp false 0))]))
+
+
+;(@htdf render-true)
+;(@signature TrueBoard -> Image)
+;; produce a render of true board
+
+(define (render-true gs)
+  (place-images
+    (list (text "Complete!" (round (/ WIDTH 13)) "black")
+          (text (timer-string (tb-timer gs)) (round (/ WIDTH 13)) "black")
+          (overlay (text "New Game" (round (* WIDTH 9/160)) "black")
+                   (rectangle (* WIDTH .3) (* HEIGHT .09)
+                              "solid" "green"))
+          (overlay (text "Continue" (round (* WIDTH 9/160)) "black")
+                   (rectangle (* WIDTH .3) (* HEIGHT .09)
+                              "solid" "gray"))
+          (overlay (text "Main Menu" (round (* WIDTH 9/160)) "black")
+                   (rectangle (* WIDTH .3) (* HEIGHT .09)
+                              "solid" "green"))
+          (rectangle (* WIDTH .4) (* HEIGHT .62)
+                     "solid" "white")
+          (rectangle (* WIDTH .43) (* HEIGHT .65)
+                     "solid" "blue"))
+    (list (make-posn (/ WIDTH 2) (* HEIGHT 0.3))
+          (make-posn (/ WIDTH 2) (* HEIGHT 0.4))
+          (make-posn (/ WIDTH 2) (* HEIGHT .5))
+          (make-posn (/ WIDTH 2) (* HEIGHT .6))
+          (make-posn (/ WIDTH 2) (* HEIGHT .7))
+          (make-posn (/ WIDTH 2) (/ HEIGHT 2))
+          (make-posn (/ WIDTH 2) (/ HEIGHT 2)))
+    (render-board (tb-bd gs)))
 
 
 ;(@htdf render-board)
@@ -456,6 +464,9 @@
 (define (render-board bd)
   (local  [(define SIZE (/ WIDTH 2 (sqrt (length bd))))
 
+           ;(@htdf render-square)
+           ;(@signature Val -> Image)
+           ;; produce render of a value
            (define (render-square v)
              (cond [(number? v)
                     (overlay (text (number->string v) (round SIZE) "black")
@@ -463,6 +474,9 @@
                    [else
                     (square (* 2 SIZE) "outline" "black")]))
 
+           ;(@htdf render-row)
+           ;(@signature (listof Val) -> Image)
+           ;; produce render of a list of values
            (define (render-row lov)
              (foldr beside empty-image (map render-square lov)))]
     
