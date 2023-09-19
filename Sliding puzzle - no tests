@@ -464,9 +464,6 @@
 (define (render-board bd)
   (local  [(define SIZE (/ WIDTH 2 (sqrt (length bd))))
 
-           ;(@htdf render-square)
-           ;(@signature Val -> Image)
-           ;; produce render of a value
            (define (render-square v)
              (cond [(number? v)
                     (overlay (text (number->string v) (round SIZE) "black")
@@ -474,9 +471,6 @@
                    [else
                     (square (* 2 SIZE) "outline" "black")]))
 
-           ;(@htdf render-row)
-           ;(@signature (listof Val) -> Image)
-           ;; produce render of a list of values
            (define (render-row lov)
              (foldr beside empty-image (map render-square lov)))]
     
@@ -503,14 +497,14 @@
   ;;  number of vals to add to cur before adding cur to rsf
   (local [(define len (sqrt (length bd0)))
           (define (separate-bd bd rsf cur acc)
-            (cond [(empty? bd) (append rsf (list cur))]
+            (cond [(empty? bd) (append rsf (list cur))] ; if bd empty append cur to rsf at the end
                   [else
                    (if (zero? acc)
-                       (separate-bd (rest bd)
+                       (separate-bd (rest bd)  ; if acc is zero add cur to rsf, then make new cur with (list (first bd))
                                     (append rsf (list cur))
                                     (list (first bd))
                                     (sub1 len))
-                       (separate-bd (rest bd)
+                       (separate-bd (rest bd)  ; if acc not zero then add to cur and subtract 1 from acc
                                     rsf
                                     (append cur (list (first bd)))
                                     (sub1 acc)))]))]
@@ -576,7 +570,7 @@
 
 ;(@htdf quit)
 ;(@signature GameState -> Boolean)
-;; produce true if bs-s of the current gamestate is true
+;; produce true if gs if fp and fp-page is 3 (quit game)
 
 ;(@template-origin GameState)
 
@@ -841,7 +835,8 @@
     
     (remainder (+ (cycle-parity (pair-cycle (list-pair lon)))
                   (blank-parity (sqrt (length lon))
-                                (index-of lon (sub1 (length lon))))) 2)))
+                                (index-of lon (sub1 (length lon))))) 
+               2)))
 
 
 ;(@htdf blank-parity)
@@ -878,20 +873,20 @@
   ;; rsf is (listof Cycle); all cycles seen so far
   (local [(define (pair-cycle lop acc cyc rsf)
             (local [(define ind (pair-ind acc))]
-              (cond [(empty? lop)
-                     (append rsf (list (append cyc (list ind))))]
-                    [(= (first cyc) ind)
+              (cond [(empty? lop)                                 ; if lop is empty
+                     (append rsf (list (append cyc (list ind))))] ; add cyc to rsf
+                    [(= (first cyc) ind)  ; if cycle ends
                      (pair-cycle
-                      (rest lop)
+                      (rest lop)    
                       (first lop)
-                      (list (pair-val (first lop)))
-                      (append rsf (list (append cyc (list ind)))))]
+                      (list (pair-val (first lop)))                 ; reset accumulators
+                      (append rsf (list (append cyc (list ind)))))] ; add cyc to rsf
                     [else
                      (local [(define npair
                                (find-npair lop ind))]
-                       (pair-cycle (remove npair lop)
+                       (pair-cycle (remove npair lop)    ; find the pair pointed to by ind
                                    npair
-                                   (append cyc (list (pair-val npair)))
+                                   (append cyc (list (pair-val npair))) ; add val to cyc
                                    rsf))])))
 
           (define (find-npair lop i)
@@ -928,13 +923,13 @@
 (define (random-list n0)
   ;; rem is (listof Natural);
   ;; list of remaining naturals not yet added to the list being built
-  (local [(define (random-list n rem)
-            (cond [(zero? n) empty]
+  (local [(define (random-list n rem rsf)
+            (cond [(zero? n) rsf]
                   [else
                    (local [(define NUM (list-ref rem (random n)))]
-                     (cons NUM
-                           (random-list (sub1 n)
-                                        (remove NUM rem))))]))]
+                     (random-list (sub1 n)          ; add randomly picked
+                                  (remove NUM rem)  ;  number to rsf
+                                  (cons NUM rsf)))]))]
     (random-list n0 (build-list n0 identity))))
 
 
@@ -965,7 +960,7 @@
         [(tb? gs) gs]
         [else
          (local [(define bd (bs-bd gs))
-                 (define index (index-of bd B))
+                 (define b-index (index-of bd B))
                  (define size (length bd))
                  (define N (sqrt size))
           
@@ -976,12 +971,13 @@
                    (+ (* (pos-y p) N) (pos-x p)))
 
                  (define (blank-replace n)
-                   (local [(define num (list-ref bd n))]
-                     (list-set (list-set bd n B) index num)))
+                   (local [(define num (list-ref bd n))] ; num is the number at position n
+                     ;         set position n to B, then set position b-index to n
+                     (list-set (list-set bd n B) b-index num)))
 
                  (define new-pos
-                   (make-pos (+ (pos-col index) (pos-x pos))
-                             (+ (pos-row index) (pos-y pos))))]
+                   (make-pos (+ (pos-col b-index) (pos-x pos))
+                             (+ (pos-row b-index) (pos-y pos))))]
            (cond [(and (<= 0 (pos-x new-pos) (sub1 N))
                        (<= 0 (pos-y new-pos) (sub1 N)))
                   (make-bs (blank-replace (pos->index new-pos))
